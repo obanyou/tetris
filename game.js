@@ -15,9 +15,9 @@ const player = {
   matrix: null
 };
 
-let nextPiece = null;
 let holdPiece = null;
 let canHold = true;
+let bag = [];
 
 let score = 0;
 let highScore = 0;
@@ -27,6 +27,10 @@ let totalLines = 0;
 let dropCounter = 0;
 let dropInterval = 1000;
 let lastTime = 0;
+let nextQueue = [];
+let clearingLines = [];
+let clearTimer = 0;
+const CLEAR_DURATION = 200; // ミリ秒
 
 /* ---------- 基本 ---------- */
 
@@ -34,22 +38,74 @@ function createMatrix(w, h) {
   return Array.from({length: h}, () => Array(w).fill(0));
 }
 
+
 function createPiece(type) {
-  if (type === 'T') return [[0,1,0],[1,1,1],[0,0,0]];
-  if (type === 'O') return [[2,2],[2,2]];
-  if (type === 'L') return [[0,0,3],[3,3,3],[0,0,0]];
-  if (type === 'I') return [[4,4,4,4]];
+  if (type === 'T') return [
+    [0,1,0],
+    [1,1,1],
+    [0,0,0]
+  ];
+
+  if (type === 'O') return [
+    [2,2],
+    [2,2]
+  ];
+
+  if (type === 'L') return [
+    [0,0,3],
+    [3,3,3],
+    [0,0,0]
+  ];
+
+  if (type === 'J') return [
+    [4,0,0],
+    [4,4,4],
+    [0,0,0]
+  ];
+
+  if (type === 'I') return [
+    [5,5,5,5]
+  ];
+
+  if (type === 'S') return [
+    [0,6,6],
+    [6,6,0],
+    [0,0,0]
+  ];
+
+  if (type === 'Z') return [
+    [7,7,0],
+    [0,7,7],
+    [0,0,0]
+  ];
 }
 
 function randomPiece() {
-  const pieces = 'TOLI';
-  return createPiece(pieces[Math.floor(Math.random()*pieces.length)]);
+  const pieces = 'TJLOSZI';
+  return createPiece(
+    pieces[Math.floor(Math.random() * pieces.length)]
+  );
 }
-
+function getNextPiece() {
+  if (bag.length === 0) {
+    bag = ['T','J','L','O','S','Z','I'];
+    shuffle(bag);
+  }
+  return createPiece(bag.pop());
+}
 /* ---------- 描画 ---------- */
 
 function drawMatrix(matrix, offset, context) {
-  const colors = [null,"#ff4d4d","#ffd700","#4da6ff","#00ffff"];
+  const colors = [
+  null,
+  "#ff4d4d", // T
+  "#ffd700", // O
+  "#4da6ff", // L
+  "#ff8c00", // J
+  "#00ffff", // I
+  "#00ff00", // S
+  "#ff0000"  // Z
+];
 
   matrix.forEach((row,y)=>{
     row.forEach((value,x)=>{
@@ -69,30 +125,40 @@ function draw() {
   ctx.fillStyle="#111";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
+  drawGrid();
   drawGhost();
   drawMatrix(arena,{x:0,y:0},ctx);
+
+  // ⭐エフェクト
+  if(clearTimer > 0){
+    // const intensity = clearTimer / CLEAR_DURATION;
+    // ctx.fillStyle = `rgba(255,255,255,${intensity})`;
+
+    const t = clearTimer / CLEAR_DURATION;
+    const hue = (1 - t) * 360;
+
+    ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+
+    clearingLines.forEach(y=>{
+      ctx.fillRect(0, y, 12, 1);
+    });
+  }
+
   drawMatrix(player.matrix,player.pos,ctx);
 }
 
 function drawNext() {
-  nextCtx.clearRect(0,0,80,80);
-  drawMatrix(nextPiece,{x:1,y:1},nextCtx);
+  nextCtx.clearRect(0,0,80,240); // 高さ広げる
+
+  nextQueue.forEach((piece, index) => {
+    drawMatrix(piece, {x:1, y: index * 3 + 1}, nextCtx);
+  });
 }
 
 function drawHold() {
   holdCtx.clearRect(0,0,80,80);
   if(holdPiece){
     drawMatrix(holdPiece,{x:1,y:1},holdCtx);
-  }
-  function draw() {
-    ctx.fillStyle="#111";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  
-    drawGrid();   // ⭐これ追加
-  
-    drawGhost();
-    drawMatrix(arena,{x:0,y:0},ctx);
-    drawMatrix(player.matrix,player.pos,ctx);
   }
 }
 
@@ -187,29 +253,17 @@ function hold(){
 /* ---------- ライン消去 ---------- */
 
 function arenaSweep(){
-  let lines=0;
+  clearingLines = [];
 
   outer: for(let y=arena.length-1;y>0;y--){
     for(let x=0;x<arena[y].length;x++){
       if(arena[y][x]===0) continue outer;
     }
-    arena.splice(y,1);
-    arena.unshift(new Array(12).fill(0));
-    y++;
-    lines++;
+    clearingLines.push(y);
   }
 
-  if(lines){
-    score += [0,100,300,500,800][lines];
-    totalLines += lines;
-
-    if(totalLines >= level*10){
-      level++;
-      dropInterval*=0.8;
-      updateLevel();
-    }
-
-    updateScore();
+  if(clearingLines.length){
+    clearTimer = CLEAR_DURATION;
   }
 }
 
@@ -252,12 +306,43 @@ function drawGrid() {
     }
   }
 
+  function initNextQueue() {
+  nextQueue = [
+    getNextPiece(),
+    getNextPiece(),
+    getNextPiece()
+  ];
+}
+
+function removeLines(){
+  let lines = clearingLines.length;
+
+  clearingLines.forEach(y=>{
+    arena.splice(y,1);
+    arena.unshift(new Array(12).fill(0));
+  });
+
+  score += [0,100,300,500,800][lines];
+  totalLines += lines;
+
+  if(totalLines >= level*10){
+    level++;
+    dropInterval *= 0.8;
+    updateLevel();
+  }
+
+  updateScore();
+
+  clearingLines = [];
+}
+
 /* ---------- 初期化 ---------- */
 
 function playerReset(){
-  player.matrix = nextPiece || randomPiece();
-  nextPiece = randomPiece();
-  player.pos={x:5,y:0};
+  player.matrix = nextQueue.shift(); // 先頭取り出し
+  nextQueue.push(getNextPiece());    // 1個追加
+
+  player.pos = {x:5, y:0};
 
   drawNext();
 
@@ -274,12 +359,29 @@ function update(time=0){
   lastTime=time;
 
   dropCounter+=delta;
-  if(dropCounter>dropInterval) playerDrop();
+
+  if(dropCounter>dropInterval && clearTimer<=0){
+    playerDrop();
+  }
+
+  if(clearTimer > 0){
+    clearTimer -= delta;
+
+    if(clearTimer <= 0){
+      removeLines();
+    }
+  }
 
   draw();
   requestAnimationFrame(update);
 }
 
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 /* ---------- 入力 ---------- */
 
 document.addEventListener("keydown", e=>{
@@ -290,10 +392,13 @@ document.addEventListener("keydown", e=>{
   else if(e.key==="c") hold();
 });
 
+
+
 /* ---------- 起動 ---------- */
 
 loadHighScore();
-nextPiece=randomPiece();
+initNextQueue(); 
+nextPiece = getNextPiece();
 playerReset();
 updateScore();
 updateLevel();
