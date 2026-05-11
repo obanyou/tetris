@@ -15,6 +15,12 @@ const player = {
   matrix: null
 };
 
+const sounds = {
+  clear: new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"),
+  drop: new Audio("https://actions.google.com/sounds/v1/impacts/metal_thud_and_clank.ogg")
+};
+
+
 let holdPiece = null;
 let canHold = true;
 let bag = [];
@@ -227,11 +233,7 @@ function playerDrop(){
   dropCounter=0;
 }
 
-function hardDrop(){
-  while(!collide(arena,player)) player.pos.y++;
-  player.pos.y--;
-  playerDrop();
-}
+
 
 /* ---------- ホールド ---------- */
 
@@ -334,6 +336,12 @@ function removeLines(){
   updateScore();
 
   clearingLines = [];
+
+  if(lines > 0){
+    playSound(sounds.clear);
+    vibrate(100);
+  }
+
 }
 
 /* ---------- 初期化 ---------- */
@@ -382,6 +390,40 @@ function shuffle(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
 }
+
+/* ---------- サウンド -------------*/
+function playSound(sound) {
+  sound.currentTime = 0;
+  sound.play().catch(e => {
+    console.log("音エラー:", e);
+  });
+}
+
+function playSound(sound) {
+  const s = sound.cloneNode();
+  s.play().catch(()=>{});
+}
+
+function playSound(sound) {
+  const s = new Audio(sound.src);
+  s.volume = 0.8;
+  s.play().catch(()=>{});
+}
+
+function hardDrop(){
+  while(!collide(arena,player)) player.pos.y++;
+  player.pos.y--;
+  playerDrop();
+
+  playSound(sounds.drop);
+  vibrate(30);
+}
+
+function vibrate(ms) {
+  if (navigator.vibrate) {
+    navigator.vibrate(ms);
+  }
+}
 /* ---------- 入力 ---------- */
 
 document.addEventListener("keydown", e=>{
@@ -392,13 +434,20 @@ document.addEventListener("keydown", e=>{
   else if(e.key==="c") hold();
 });
 
+document.addEventListener("touchstart", () => {
+  sounds.clear.play().catch(()=>{});
+}, { once: true });
 
-
+document.addEventListener("click", () => {
+  sounds.clear.play().then(()=> {
+    sounds.clear.pause();
+    sounds.clear.currentTime = 0;
+  }).catch(()=>{});
+}, { once: true });
 /* ---------- 起動 ---------- */
 
 loadHighScore();
 initNextQueue(); 
-nextPiece = getNextPiece();
 playerReset();
 updateScore();
 updateLevel();
