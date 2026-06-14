@@ -629,6 +629,9 @@ function restartGame() {
 /* ---------- 入力 ---------- */
 
 document.addEventListener("keydown", e=>{
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)) {
+    e.preventDefault();
+  }
   if (e.key === "p" || e.key === "P") { togglePause(); return; }
   if (e.key === "m" || e.key === "M") { toggleBGM(); return; }
   if (isPaused || isGameOver) return;
@@ -636,7 +639,7 @@ document.addEventListener("keydown", e=>{
   else if (e.key === "ArrowRight") { dasDir=1;  dasTimer=0; dasActive=false; playerMove(1); }
   else if (e.key === "ArrowDown")  playerDrop();
   else if (e.key === "ArrowUp")    playerRotate();
-  else if (e.key === " ")          { e.preventDefault(); hardDrop(); }
+  else if (e.key === " ")          hardDrop();
   else if (e.key === "c" || e.key === "C") hold();
 });
 

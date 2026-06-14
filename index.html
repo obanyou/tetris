@@ -7,12 +7,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
 
 <style>
+html, body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background: radial-gradient(circle, #0f2027, #203a43, #2c5364);
   color: white;
   text-align: center;
   font-family: 'Orbitron', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
+
+#game-wrapper {
+  transform-origin: top center;
+}
+
+h1 { margin: 4px 0; font-size: 24px; }
+p  { margin: 2px 0; }
 
 #container {
   display: flex;
@@ -150,6 +168,8 @@ canvas {
 
 <body>
 
+<div id="game-wrapper">
+
 <h1>テトリス</h1>
 
 <div id="top-bar">
@@ -192,6 +212,19 @@ canvas {
   <button onclick="hardDrop()">⚡</button>
 </div>
 
+</div><!-- #game-wrapper -->
+
 <script src="game.js"></script>
+<script>
+function scaleToFit() {
+  const wrapper = document.getElementById('game-wrapper');
+  const scaleX = window.innerWidth  / wrapper.offsetWidth;
+  const scaleY = window.innerHeight / wrapper.offsetHeight;
+  const scale  = Math.min(scaleX, scaleY, 1);
+  wrapper.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', scaleToFit);
+window.addEventListener('load',   scaleToFit);
+</script>
 </body>
 </html>
