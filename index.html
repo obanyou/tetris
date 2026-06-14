@@ -137,7 +137,7 @@ canvas {
   text-shadow: 0 0 20px #0ff, 0 0 50px #0ff;
   letter-spacing: 8px;
 }
-#pause.show { display: flex; }
+#pause.show { display: flex; cursor: pointer; }
 
 #top-bar {
   display: flex;
@@ -194,7 +194,7 @@ canvas {
   </div>
 </div>
 
-<div id="pause">PAUSED</div>
+<div id="pause" onclick="togglePause()">PAUSED</div>
 
 <div id="gameover">
   <p id="gameover-title">GAME OVER</p>
