@@ -33,6 +33,77 @@ canvas {
   margin: 5px;
   border-radius: 10px;
 }
+
+#gameover {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 100;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  font-family: 'Orbitron', sans-serif;
+}
+#gameover.show {
+  display: flex;
+  animation: goFadeIn 0.4s ease;
+}
+@keyframes goFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+#gameover-title {
+  font-size: 56px;
+  color: #ff4444;
+  text-shadow: 0 0 20px #ff4444, 0 0 60px #ff0000;
+  margin: 0;
+  animation: goPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes goPop {
+  0%   { transform: scale(0.3); opacity: 0; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+#go-new-record {
+  color: #ffd700;
+  font-size: 16px;
+  margin: 0;
+  text-shadow: 0 0 12px #ffd700;
+  animation: goFlicker 0.9s ease-in-out infinite alternate;
+}
+@keyframes goFlicker {
+  from { opacity: 0.5; }
+  to   { opacity: 1; text-shadow: 0 0 28px #ffd700, 0 0 50px #ffa500; }
+}
+.go-row {
+  font-size: 20px;
+  color: #aaa;
+  margin: 0;
+}
+.go-row span {
+  color: #0ff;
+  text-shadow: 0 0 10px #0ff;
+}
+#gameover-btn {
+  margin-top: 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  padding: 12px 52px;
+  background: transparent;
+  border: 2px solid #0ff;
+  color: #0ff;
+  border-radius: 8px;
+  cursor: pointer;
+  text-shadow: 0 0 8px #0ff;
+  box-shadow: 0 0 16px rgba(0,255,255,0.35);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+#gameover-btn:hover {
+  background: #0ff;
+  color: #000;
+  box-shadow: 0 0 36px #0ff;
+}
 </style>
 </head>
 
@@ -54,6 +125,14 @@ canvas {
     <p>Hold</p>
     <canvas id="hold" width="80" height="80"></canvas>
   </div>
+</div>
+
+<div id="gameover">
+  <p id="gameover-title">GAME OVER</p>
+  <p id="go-new-record">✦ NEW RECORD ✦</p>
+  <p class="go-row">SCORE &nbsp;<span id="go-score">0</span></p>
+  <p class="go-row">BEST &nbsp;&nbsp;<span id="go-best">0</span></p>
+  <button id="gameover-btn" onclick="restartGame()">PLAY AGAIN</button>
 </div>
 
 <div id="controls">

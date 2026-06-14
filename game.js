@@ -15,10 +15,7 @@ const player = {
   matrix: null
 };
 
-const sounds = {
-  clear: new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"),
-  drop: new Audio("https://actions.google.com/sounds/v1/impacts/metal_thud_and_clank.ogg")
-};
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 
 let holdPiece = null;
@@ -37,6 +34,7 @@ let nextQueue = [];
 let clearingLines = [];
 let clearTimer = 0;
 const CLEAR_DURATION = 200; // ミリ秒
+let isGameOver = false;
 
 /* ---------- 基本 ---------- */
 
@@ -226,6 +224,8 @@ function playerDrop(){
   if(collide(arena,player)){
     player.pos.y--;
     merge(arena,player);
+    playDrop();
+    vibrate(30);
     canHold=true;
     playerReset();
     arenaSweep();
@@ -319,6 +319,8 @@ function drawGrid() {
 function removeLines(){
   let lines = clearingLines.length;
 
+  // 昇順ソートしてから処理することで、splice+unshift後もインデックスがずれない
+  clearingLines.sort((a,b) => a - b);
   clearingLines.forEach(y=>{
     arena.splice(y,1);
     arena.unshift(new Array(12).fill(0));
@@ -331,6 +333,7 @@ function removeLines(){
     level++;
     dropInterval *= 0.8;
     updateLevel();
+    playLevelUp();
   }
 
   updateScore();
@@ -338,7 +341,7 @@ function removeLines(){
   clearingLines = [];
 
   if(lines > 0){
-    playSound(sounds.clear);
+    playClear();
     vibrate(100);
   }
 
@@ -355,14 +358,15 @@ function playerReset(){
   drawNext();
 
   if(collide(arena,player)){
-    alert("ゲームオーバー");
-    location.reload();
+    showGameOver();
+    return;
   }
 }
 
 /* ---------- ループ ---------- */
 
 function update(time=0){
+  if(isGameOver) return;
   const delta=time-lastTime;
   lastTime=time;
 
@@ -392,31 +396,81 @@ function shuffle(array) {
 }
 
 /* ---------- サウンド -------------*/
-function playSound(sound) {
-  sound.currentTime = 0;
-  sound.play().catch(e => {
-    console.log("音エラー:", e);
+function resumeAudio() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playDrop() {
+  resumeAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.15);
+}
+
+function playLevelUp() {
+  resumeAudio();
+  const notes = [523, 659, 784, 1047]; // C5→E5→G5→C6 の上昇メジャー
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    const t = audioCtx.currentTime + i * 0.12;
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.start(t);
+    osc.stop(t + 0.25);
   });
 }
 
-function playSound(sound) {
-  const s = sound.cloneNode();
-  s.play().catch(()=>{});
+function playGameOver() {
+  resumeAudio();
+  const notes = [440, 370, 294, 220]; // A4→F#4→D4→A3 の下降マイナー
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    const t = audioCtx.currentTime + i * 0.22;
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+    osc.start(t);
+    osc.stop(t + 0.45);
+  });
 }
 
-function playSound(sound) {
-  const s = new Audio(sound.src);
-  s.volume = 0.8;
-  s.play().catch(()=>{});
+function playClear() {
+  resumeAudio();
+  [523, 659, 784].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime + i * 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.1 + 0.3);
+    osc.start(audioCtx.currentTime + i * 0.1);
+    osc.stop(audioCtx.currentTime + i * 0.1 + 0.3);
+  });
 }
 
 function hardDrop(){
   while(!collide(arena,player)) player.pos.y++;
   player.pos.y--;
   playerDrop();
-
-  playSound(sounds.drop);
-  vibrate(30);
 }
 
 function vibrate(ms) {
@@ -424,6 +478,47 @@ function vibrate(ms) {
     navigator.vibrate(ms);
   }
 }
+
+/* ---------- ゲームオーバー ---------- */
+
+function showGameOver() {
+  isGameOver = true;
+  playGameOver();
+  const el = document.getElementById('gameover');
+  const isNewRecord = score > 0 && score >= highScore;
+  document.getElementById('go-score').textContent = score;
+  document.getElementById('go-best').textContent = highScore;
+  document.getElementById('go-new-record').style.display = isNewRecord ? 'block' : 'none';
+  el.classList.add('show');
+}
+
+function restartGame() {
+  document.getElementById('gameover').classList.remove('show');
+
+  arena.forEach(row => row.fill(0));
+  score = 0;
+  level = 1;
+  totalLines = 0;
+  dropInterval = 1000;
+  dropCounter = 0;
+  holdPiece = null;
+  canHold = true;
+  bag = [];
+  clearingLines = [];
+  clearTimer = 0;
+  nextQueue = [];
+  lastTime = 0;
+
+  initNextQueue();
+  playerReset();
+  updateScore();
+  updateLevel();
+  drawHold();
+
+  isGameOver = false;
+  requestAnimationFrame(update);
+}
+
 /* ---------- 入力 ---------- */
 
 document.addEventListener("keydown", e=>{
@@ -434,16 +529,8 @@ document.addEventListener("keydown", e=>{
   else if(e.key==="c") hold();
 });
 
-document.addEventListener("touchstart", () => {
-  sounds.clear.play().catch(()=>{});
-}, { once: true });
-
-document.addEventListener("click", () => {
-  sounds.clear.play().then(()=> {
-    sounds.clear.pause();
-    sounds.clear.currentTime = 0;
-  }).catch(()=>{});
-}, { once: true });
+document.addEventListener("keydown", resumeAudio, { once: true });
+document.addEventListener("touchstart", resumeAudio, { once: true });
 /* ---------- 起動 ---------- */
 
 loadHighScore();
