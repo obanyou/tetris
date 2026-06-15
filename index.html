@@ -27,7 +27,7 @@ body {
 }
 
 #game-wrapper {
-  transform-origin: top center;
+  transform-origin: center center;
 }
 
 h1 { margin: 4px 0; font-size: 24px; }
@@ -164,6 +164,30 @@ canvas {
   color: #555;
   margin: 4px 0 8px;
 }
+
+#go-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #aaa;
+  margin: 0;
+}
+.go-stat span {
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
+  margin-left: 6px;
+}
+
+@media (pointer: coarse) {
+  #key-hint { display: none; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  h1 { font-size: 16px; }
+  #key-hint { display: none; }
+  p { margin: 1px 0; font-size: 12px; }
+  #controls { display: none; }
+}
 </style>
 </head>
 
@@ -176,12 +200,13 @@ canvas {
 <div id="top-bar">
   <button class="top-btn" onclick="togglePause()">⏸ PAUSE [P]</button>
   <button class="top-btn" id="bgm-btn" onclick="toggleBGM()">♪ OFF [M]</button>
+  <button class="top-btn" id="fs-btn" onclick="toggleFullscreen()">⛶ 全画面</button>
 </div>
 
 <p>スコア: <span id="score">0</span></p>
 <p>ハイスコア: <span id="highscore">0</span></p>
 <p>レベル: <span id="level">1</span></p>
-<p id="key-hint">← → 移動 &nbsp;↑ 回転 &nbsp;↓ ソフトドロップ &nbsp;Space ハードドロップ &nbsp;C ホールド</p>
+<p id="key-hint">← → 移動 &nbsp;↑/Z 回転 &nbsp;↓ ソフトドロップ &nbsp;Space ハードドロップ &nbsp;C ホールド</p>
 
 <div id="container">
   <canvas id="game" width="240" height="400"></canvas>
@@ -202,6 +227,12 @@ canvas {
   <p id="go-new-record">✦ NEW RECORD ✦</p>
   <p class="go-row">SCORE &nbsp;<span id="go-score">0</span></p>
   <p class="go-row">BEST &nbsp;&nbsp;<span id="go-best">0</span></p>
+  <div id="go-stats">
+    <p class="go-stat">LINES <span id="go-lines">0</span></p>
+    <p class="go-stat">PIECES <span id="go-pieces">0</span></p>
+    <p class="go-stat">LEVEL <span id="go-level">0</span></p>
+    <p class="go-stat">TIME <span id="go-time">0:00</span></p>
+  </div>
   <button id="gameover-btn" onclick="restartGame()">PLAY AGAIN</button>
 </div>
 
