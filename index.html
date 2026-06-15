@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>テトリス</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
@@ -220,7 +221,7 @@ function scaleToFit() {
   const wrapper = document.getElementById('game-wrapper');
   const scaleX = window.innerWidth  / wrapper.offsetWidth;
   const scaleY = window.innerHeight / wrapper.offsetHeight;
-  const scale  = Math.min(scaleX, scaleY, 1);
+  const scale  = Math.min(scaleX, scaleY);
   wrapper.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', scaleToFit);
